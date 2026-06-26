@@ -6,6 +6,20 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-29e7d7?style=flat-square) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-29e7d7?style=flat-square) ![Tests](https://img.shields.io/badge/tests-pytest-a7ef63?style=flat-square)
 
+![AegisFlow dashboard](docs/images/dashboard.png)
+
+## 프로젝트 목적
+
+AegisFlow NIDS는 네트워크 보안 직무 포트폴리오를 목표로 만든 **설명 가능한 침입탐지 분석 플랫폼**입니다. 단순히 모델 정확도만 보여주는 프로젝트가 아니라, 보안 이벤트가 생성되고 저장되며 분석가가 조사 상태를 관리하는 흐름까지 구현했습니다.
+
+이 프로젝트가 보여주려는 역량은 다음과 같습니다.
+
+- 네트워크 flow 기반 보안 데이터 모델링
+- 규칙 기반 탐지와 비지도 이상탐지의 결합 설계
+- 탐지 근거를 남기는 explainable security event 구조
+- FastAPI, WebSocket, SQLite를 이용한 실시간 SOC 대시보드 구현
+- CICIDS2017 같은 공개 보안 데이터셋으로 확장 가능한 평가 구조
+
 ## 핵심 설계
 
 - **하이브리드 탐지:** Port Scan, Brute Force, DoS, Exfiltration, C2 규칙과 정상 흐름 기반 Isolation Forest를 결합합니다.
@@ -13,6 +27,35 @@
 - **운영 흐름:** SQLite 이벤트 이력, `new → investigating → resolved` 조사 상태, 실시간 WebSocket 피드를 제공합니다.
 - **안전한 데모:** 관리자 권한이나 원시 패킷 캡처 없이 결정론적 트래픽 시뮬레이터로 즉시 시연할 수 있습니다.
 - **실데이터 확장:** CICIDS2017의 `BENIGN` flow CSV로 정상 기준 모델을 다시 학습할 수 있습니다.
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    A["Traffic simulator<br/>or POST /api/detect"] --> B["Pydantic flow validation"]
+    B --> C["Feature extraction"]
+    C --> D["Signature rules"]
+    C --> E["Isolation Forest<br/>anomaly score"]
+    D --> F["Risk scoring<br/>+ explanation"]
+    E --> F
+    F --> G["SQLite event store"]
+    F --> H["WebSocket broadcast"]
+    G --> I["SOC dashboard"]
+    H --> I
+    I --> J["Triage status<br/>new / investigating / resolved"]
+```
+
+## 마린웍스 지원 직무와의 연결성
+
+마린웍스 지원용 포트폴리오 관점에서 이 프로젝트는 **네트워크 보안, 침입탐지, 보안 데이터 분석, AI 기반 이상징후 탐지** 역량을 보여주는 데 초점을 맞췄습니다.
+
+| 직무 키워드 | 프로젝트에서 보여주는 근거 |
+|---|---|
+| 네트워크 보안 | flow 필드, 포트, 프로토콜, 연결 수, SYN 수 기반 탐지 |
+| 침입탐지 | Port Scan, Brute Force, DoS, Exfiltration, C2 규칙 |
+| AI/ML 이상탐지 | 정상 baseline 기반 Isolation Forest |
+| 보안 운영 | 실시간 대시보드, 이벤트 저장, 조사 상태 변경 |
+| 설명 가능성 | rule id, anomaly score, risk score, evidence 제공 |
 
 ## 빠른 실행
 
@@ -82,8 +125,16 @@ tests/              # 탐지·저장소·API 자동 테스트
 docs/               # 인터뷰 기반 설계와 검증 근거
 ```
 
+## 면접에서 설명할 핵심 포인트
+
+- 실제 패킷 차단기가 아니라 flow 기반 NIDS 프로토타입으로 범위를 좁힌 이유
+- 알려진 공격은 규칙으로 설명 가능성을 확보하고, 알려지지 않은 흐름은 Isolation Forest로 보완한 이유
+- risk score는 보정된 공격 확률이 아니라 SOC triage 우선순위 점수라는 점
+- CICIDS2017 평가에서는 임의 행 분할 대신 날짜/호스트 단위 holdout이 필요하다는 점
+- 운영 환경 확장 시 인증, TLS, CORS allowlist, rate limit, 감사 로그, 메시지 브로커가 필요하다는 점
+
 ## 명확한 한계
 
 이 프로젝트는 포트폴리오용 **flow 기반 NIDS 프로토타입**이며 방화벽/IPS처럼 패킷을 차단하지 않습니다. 합성 시뮬레이터의 결과는 실제 운영 성능을 뜻하지 않습니다. 실제 성능 주장은 시간/호스트 단위 데이터 분할, 클래스별 precision·recall·F1, false positives per hour, 처리량과 지연 측정을 거친 뒤에만 가능합니다.
 
-설계 결정과 전문가 질문–답변 기록은 [docs/DESIGN_INTERVIEW.md](docs/DESIGN_INTERVIEW.md), 운영·위협 모델은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)를 참고하세요.
+설계 결정과 전문가 질문–답변 기록은 [docs/DESIGN_INTERVIEW.md](docs/DESIGN_INTERVIEW.md), 운영·위협 모델은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), 면접 방어 포인트는 [docs/INTERVIEW_NOTES.md](docs/INTERVIEW_NOTES.md), 평가 계획은 [docs/EVALUATION_PLAN.md](docs/EVALUATION_PLAN.md)를 참고하세요.
