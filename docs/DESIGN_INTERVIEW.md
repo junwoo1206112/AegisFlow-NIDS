@@ -46,7 +46,7 @@
 | 출력 | API, WebSocket, SQLite, SOC 대시보드 | 닫힘 |
 | 운영 | 단일 로컬 인스턴스, bounded retention | 닫힘 |
 | 검증 | 규칙·정상·입력·저장·API·브라우저 검증 | 닫힘 |
-| 비목표 | 실망 정확도 주장, 패킷 차단, 인증/TLS | 닫힘 |
+| 비목표 | 실성능 근거 없는 정확도 주장, 패킷 차단, 인증/TLS | 닫힘 |
 
 ## Restate gate
 
@@ -61,4 +61,3 @@
 - [NIST SP 800-94](https://csrc.nist.gov/pubs/sp/800/94/final): IDPS 설계·구현·운영·유지관리 가이드.
 - [scikit-learn Isolation Forest](https://scikit-learn.org/stable/modules/outlier_detection.html#isolation-forest): 고차원 이상치를 무작위 분할로 격리하는 모델의 공식 설명.
 - [FastAPI WebSockets](https://fastapi.tiangolo.com/advanced/websockets/): 실시간 이벤트 전달 구현 계약.
-
