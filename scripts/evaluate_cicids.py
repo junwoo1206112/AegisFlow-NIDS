@@ -76,7 +76,7 @@ def row_to_flow(row: dict[str, str]) -> NetworkFlow:
     )
 
 
-def is_attack(row: dict[str, str]) -> bool:
+def is_abnormal_event(row: dict[str, str]) -> bool:
     label = _value(row, " Label", "Label", default="").strip().upper()
     return label != "BENIGN"
 
@@ -89,16 +89,16 @@ def evaluate_csv(path: Path, detector: HybridDetector, limit: int | None = None)
             if limit is not None and index >= limit:
                 break
             try:
-                expected_attack = is_attack(row)
+                expected_event = is_abnormal_event(row)
                 predicted_alert = detector.predict(row_to_flow(row)).is_alert
             except (TypeError, ValueError):
                 continue
 
-            if expected_attack and predicted_alert:
+            if expected_event and predicted_alert:
                 confusion.true_positive += 1
-            elif expected_attack and not predicted_alert:
+            elif expected_event and not predicted_alert:
                 confusion.false_negative += 1
-            elif not expected_attack and predicted_alert:
+            elif not expected_event and predicted_alert:
                 confusion.false_positive += 1
             else:
                 confusion.true_negative += 1

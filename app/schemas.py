@@ -54,7 +54,7 @@ class RuleHit(BaseModel):
 
 class DetectionResult(BaseModel):
     is_alert: bool
-    attack_type: str
+    event_type: str
     severity: Severity
     risk_score: float = Field(ge=0, le=100)
     anomaly_score: float = Field(ge=0, le=1)
@@ -83,7 +83,7 @@ class Metrics(BaseModel):
     alerts_last_hour: int
     detection_rate: float
     average_risk: float
-    by_attack_type: dict[str, int]
+    by_event_type: dict[str, int]
     by_severity: dict[str, int]
     timeline: list[dict[str, int | str]]
 
@@ -94,4 +94,3 @@ class HealthResponse(BaseModel):
     model_ready: bool
     database_ready: bool
     version: str
-

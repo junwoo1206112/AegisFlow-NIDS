@@ -31,7 +31,7 @@ class EventStore:
                     flow_json TEXT NOT NULL,
                     detection_json TEXT NOT NULL,
                     is_alert INTEGER NOT NULL,
-                    attack_type TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
                     severity TEXT NOT NULL,
                     risk_score REAL NOT NULL,
                     status TEXT NOT NULL DEFAULT 'new',
@@ -39,8 +39,30 @@ class EventStore:
                 )
                 """
             )
+            self._migrate_event_type(connection)
             connection.execute("CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC)")
             connection.execute("CREATE INDEX IF NOT EXISTS idx_events_alert ON events(is_alert, severity)")
+
+    @staticmethod
+    def _migrate_event_type(connection: sqlite3.Connection) -> None:
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(events)").fetchall()}
+        if "event_type" not in columns and "attack_type" in columns:
+            connection.execute("ALTER TABLE events ADD COLUMN event_type TEXT NOT NULL DEFAULT 'Unknown Event'")
+            connection.execute("UPDATE events SET event_type = attack_type WHERE attack_type IS NOT NULL")
+
+        rows = connection.execute("SELECT id, detection_json FROM events").fetchall()
+        for row in rows:
+            try:
+                payload = json.loads(row["detection_json"])
+            except json.JSONDecodeError:
+                continue
+            if "event_type" in payload or "attack_type" not in payload:
+                continue
+            payload["event_type"] = payload.pop("attack_type")
+            connection.execute(
+                "UPDATE events SET detection_json = ?, event_type = ? WHERE id = ?",
+                (json.dumps(payload), payload["event_type"], row["id"]),
+            )
 
     @property
     def ready(self) -> bool:
@@ -56,12 +78,12 @@ class EventStore:
         with self._connect() as connection:
             cursor = connection.execute(
                 """
-                INSERT INTO events(flow_json, detection_json, is_alert, attack_type, severity, risk_score, status, created_at)
+                INSERT INTO events(flow_json, detection_json, is_alert, event_type, severity, risk_score, status, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     flow.model_dump_json(), detection.model_dump_json(), int(detection.is_alert),
-                    detection.attack_type, detection.severity.value, detection.risk_score,
+                    detection.event_type, detection.severity.value, detection.risk_score,
                     EventStatus.NEW.value, created_at.isoformat(),
                 ),
             )
@@ -116,8 +138,8 @@ class EventStore:
                 FROM events
                 """
             ).fetchone()
-            attack_rows = connection.execute(
-                "SELECT attack_type, COUNT(*) count FROM events WHERE is_alert = 1 GROUP BY attack_type ORDER BY count DESC"
+            event_rows = connection.execute(
+                "SELECT event_type, COUNT(*) count FROM events WHERE is_alert = 1 GROUP BY event_type ORDER BY count DESC"
             ).fetchall()
             severity_rows = connection.execute(
                 "SELECT severity, COUNT(*) count FROM events WHERE is_alert = 1 GROUP BY severity"
@@ -138,7 +160,7 @@ class EventStore:
             alerts_last_hour=int(summary["last_hour"]),
             detection_rate=round(alerts / total * 100, 2) if total else 0.0,
             average_risk=round(float(summary["avg_risk"]), 1),
-            by_attack_type={row["attack_type"]: row["count"] for row in attack_rows},
+            by_event_type={row["event_type"]: row["count"] for row in event_rows},
             by_severity={row["severity"]: row["count"] for row in severity_rows},
             timeline=[{"time": row["bucket"], "count": row["count"]} for row in timeline_rows],
         )

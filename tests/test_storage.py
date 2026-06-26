@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 from pathlib import Path
 
 from app.detector import HybridDetector
@@ -21,13 +23,13 @@ def test_event_lifecycle_and_metrics(tmp_path: Path) -> None:
     flow = make_flow()
     event = store.add(flow, HybridDetector(seed=42).predict(flow))
     assert event.id > 0
-    assert store.list_events()[0].detection.attack_type == "Brute Force"
+    assert store.list_events()[0].detection.event_type == "Repeated Access Failure"
     updated = store.update_status(event.id, EventStatus.INVESTIGATING)
     assert updated and updated.status is EventStatus.INVESTIGATING
     metrics = store.metrics()
     assert metrics.total_flows == 1
     assert metrics.total_alerts == 1
-    assert metrics.by_attack_type == {"Brute Force": 1}
+    assert metrics.by_event_type == {"Repeated Access Failure": 1}
 
 
 def test_store_retention_limit(tmp_path: Path) -> None:
@@ -38,3 +40,43 @@ def test_store_retention_limit(tmp_path: Path) -> None:
         store.add(flow, detector.predict(flow))
     assert len(store.list_events(limit=10, alerts_only=False)) == 2
 
+
+def test_store_migrates_legacy_attack_type_schema(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.db"
+    flow = make_flow()
+    detection = HybridDetector(seed=42).predict(flow).model_dump(mode="json")
+    detection["attack_type"] = detection.pop("event_type")
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                flow_json TEXT NOT NULL,
+                detection_json TEXT NOT NULL,
+                is_alert INTEGER NOT NULL,
+                attack_type TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                risk_score REAL NOT NULL,
+                status TEXT NOT NULL DEFAULT 'new',
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO events(flow_json, detection_json, is_alert, attack_type, severity, risk_score, status, created_at)
+            VALUES (?, ?, 1, ?, ?, ?, 'new', '2026-06-27T00:00:00+00:00')
+            """,
+            (
+                flow.model_dump_json(),
+                json.dumps(detection),
+                detection["attack_type"],
+                detection["severity"],
+                detection["risk_score"],
+            ),
+        )
+
+    store = EventStore(db_path)
+    event = store.list_events()[0]
+    assert event.detection.event_type == "Repeated Access Failure"
+    assert store.metrics().by_event_type == {"Repeated Access Failure": 1}

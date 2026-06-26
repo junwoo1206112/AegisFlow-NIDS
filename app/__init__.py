@@ -1,4 +1,3 @@
-"""AegisFlow network intrusion detection portfolio application."""
+"""AegisFlow network anomaly monitoring portfolio application."""
 
 __version__ = "1.0.0"
-

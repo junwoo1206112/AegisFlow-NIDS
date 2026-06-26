@@ -74,7 +74,7 @@ def generate_baseline(seed: int = 42, rows: int = 2500) -> np.ndarray:
 
 
 class HybridDetector:
-    """Explainable signatures plus an unsupervised anomaly detector."""
+    """Explainable monitoring rules plus an unsupervised anomaly detector."""
 
     def __init__(self, model_path: Path | None = None, seed: int = 42) -> None:
         self.model_path = model_path
@@ -122,15 +122,15 @@ class HybridDetector:
         hits: list[RuleHit] = []
         packets_per_second = flow.packets / max(flow.duration_ms / 1000, 0.001)
         if flow.unique_ports_last_minute >= 24 or (flow.tcp_syn_count >= 40 and flow.unique_ports_last_minute >= 12):
-            hits.append(RuleHit(rule_id="NET-001", label="Port Scan", reason=f"{flow.unique_ports_last_minute} unique ports probed in one minute", score=0.78))
+            hits.append(RuleHit(rule_id="NET-001", label="Abnormal Port Access", reason=f"{flow.unique_ports_last_minute} unique ports contacted in one minute", score=0.78))
         if flow.failed_logins >= 8:
-            hits.append(RuleHit(rule_id="AUTH-001", label="Brute Force", reason=f"{flow.failed_logins} failed logins observed", score=min(0.90, 0.76 + flow.failed_logins / 160)))
+            hits.append(RuleHit(rule_id="AUTH-001", label="Repeated Access Failure", reason=f"{flow.failed_logins} failed access attempts observed", score=min(0.90, 0.76 + flow.failed_logins / 160)))
         if flow.connections_last_minute >= 900 or packets_per_second >= 5000:
-            hits.append(RuleHit(rule_id="NET-002", label="DoS", reason=f"Burst rate: {flow.connections_last_minute} connections/min, {packets_per_second:.0f} packets/s", score=0.94))
+            hits.append(RuleHit(rule_id="NET-002", label="Connection Burst", reason=f"Burst rate: {flow.connections_last_minute} connections/min, {packets_per_second:.0f} packets/s", score=0.94))
         if flow.bytes_total >= 80_000_000 and flow.dst_port not in {80, 443}:
-            hits.append(RuleHit(rule_id="DLP-001", label="Data Exfiltration", reason=f"Large uncommon-port transfer: {flow.bytes_total / 1_000_000:.1f} MB", score=0.82))
+            hits.append(RuleHit(rule_id="DLP-001", label="Large Data Transfer", reason=f"Large uncommon-port transfer: {flow.bytes_total / 1_000_000:.1f} MB", score=0.82))
         if flow.dst_port in {4444, 5555, 6667, 31337}:
-            hits.append(RuleHit(rule_id="C2-001", label="Command & Control", reason=f"Known high-risk destination port {flow.dst_port}", score=0.74))
+            hits.append(RuleHit(rule_id="C2-001", label="Suspicious Remote Port", reason=f"High-risk destination port {flow.dst_port}", score=0.74))
         return hits
 
     def predict(self, flow: NetworkFlow) -> DetectionResult:
@@ -152,7 +152,7 @@ class HybridDetector:
             severity = Severity.MEDIUM
         else:
             severity = Severity.LOW
-        attack_type = max(hits, key=lambda hit: hit.score).label if hits else ("Anomalous Flow" if is_alert else "Benign")
+        event_type = max(hits, key=lambda hit: hit.score).label if hits else ("Anomalous Flow" if is_alert else "Normal Flow")
         explanations = [hit.reason for hit in hits]
         if anomaly >= 0.64:
             explanations.append(f"Traffic shape differs from the benign baseline (anomaly {anomaly:.2f})")
@@ -161,7 +161,7 @@ class HybridDetector:
         confidence = strongest_rule if hits else (anomaly if is_alert else 1 - anomaly)
         return DetectionResult(
             is_alert=is_alert,
-            attack_type=attack_type,
+            event_type=event_type,
             severity=severity,
             risk_score=risk,
             anomaly_score=round(anomaly, 4),

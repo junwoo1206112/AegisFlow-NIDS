@@ -35,7 +35,7 @@ def test_health_and_detection_contract(client: TestClient) -> None:
     response = client.post("/api/detect", json=PAYLOAD)
     assert response.status_code == 201
     body = response.json()
-    assert body["detection"]["attack_type"] == "Port Scan"
+    assert body["detection"]["event_type"] == "Abnormal Port Access"
     assert body["detection"]["rule_hits"][0]["rule_id"] == "NET-001"
     status = client.patch(f"/api/events/{body['id']}/status", json={"status": "resolved"})
     assert status.status_code == 200

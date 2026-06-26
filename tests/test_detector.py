@@ -25,24 +25,24 @@ def detector() -> HybridDetector:
 def test_benign_flow_is_not_alert(detector: HybridDetector) -> None:
     result = detector.predict(flow())
     assert not result.is_alert
-    assert result.attack_type == "Benign"
+    assert result.event_type == "Normal Flow"
     assert result.severity is Severity.LOW
 
 
 @pytest.mark.parametrize(
-    ("changes", "attack_type"),
+    ("changes", "event_type"),
     [
-        ({"unique_ports_last_minute": 70, "tcp_syn_count": 65}, "Port Scan"),
-        ({"failed_logins": 18, "dst_port": 22}, "Brute Force"),
-        ({"connections_last_minute": 1800, "packets": 30_000, "duration_ms": 1000}, "DoS"),
-        ({"bytes_total": 140_000_000, "dst_port": 9001}, "Data Exfiltration"),
-        ({"dst_port": 4444}, "Command & Control"),
+        ({"unique_ports_last_minute": 70, "tcp_syn_count": 65}, "Abnormal Port Access"),
+        ({"failed_logins": 18, "dst_port": 22}, "Repeated Access Failure"),
+        ({"connections_last_minute": 1800, "packets": 30_000, "duration_ms": 1000}, "Connection Burst"),
+        ({"bytes_total": 140_000_000, "dst_port": 9001}, "Large Data Transfer"),
+        ({"dst_port": 4444}, "Suspicious Remote Port"),
     ],
 )
-def test_signature_attacks_are_detected(detector: HybridDetector, changes: dict, attack_type: str) -> None:
+def test_signature_events_are_detected(detector: HybridDetector, changes: dict, event_type: str) -> None:
     result = detector.predict(flow(**changes))
     assert result.is_alert
-    assert result.attack_type == attack_type
+    assert result.event_type == event_type
     assert result.rule_hits
     assert result.risk_score >= 70
 
@@ -50,4 +50,3 @@ def test_signature_attacks_are_detected(detector: HybridDetector, changes: dict,
 def test_invalid_ip_is_rejected() -> None:
     with pytest.raises(ValueError):
         flow(src_ip="999.10.10.10")
-

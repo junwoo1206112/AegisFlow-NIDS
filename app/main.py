@@ -56,7 +56,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=__version__,
-    description="Explainable hybrid network intrusion detection and SOC triage demo.",
+    description="Explainable hybrid network anomaly monitoring demo for equipment and maritime environments.",
     lifespan=lifespan,
 )
 
@@ -122,4 +122,3 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.get("/", include_in_schema=False)
 def dashboard() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
-

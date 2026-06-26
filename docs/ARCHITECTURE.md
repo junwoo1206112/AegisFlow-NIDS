@@ -1,4 +1,4 @@
-# Architecture and threat model
+# Architecture and monitoring model
 
 ## 데이터 흐름
 
@@ -19,20 +19,20 @@ Simulator / POST /api/detect
                     ▼         ▼
                 SQLite     WebSocket
                     │         │
-                    └──► SOC dashboard
+                    └──► Monitoring dashboard
 ```
 
 `detector.py`가 유일한 탐지 결정 소스다. `storage.py`는 결정 결과를 변경하지 않고 보존·집계하며, UI도 서버가 계산한 결과를 재해석하지 않는다.
 
 ## 위험 점수 의미
 
-규칙 경보는 `1 - (1-rule) × (1-anomaly×0.35)`로 완만하게 보정하고, 규칙 없는 이상은 `anomaly×0.75`를 사용한다. 독립 확률이라는 가정을 충족하지 않으므로 이 값은 **보정된 공격 확률이 아니라 triage 우선순위 점수**다. 운영 데이터에서 calibration하기 전 확률로 표시해서는 안 된다.
+규칙 이벤트는 `1 - (1-rule) × (1-anomaly×0.35)`로 완만하게 보정하고, 규칙 없는 이상은 `anomaly×0.75`를 사용한다. 독립 확률이라는 가정을 충족하지 않으므로 이 값은 **보정된 장애/공격 확률이 아니라 확인 우선순위 점수**다. 운영 데이터에서 calibration하기 전 확률로 표시해서는 안 된다.
 
 ## 신뢰 경계
 
 - 모든 외부 flow 필드는 타입, 범위, IP 형식 검증을 통과해야 한다.
 - SQLite 문장은 값 바인딩을 사용한다. 동적 severity 값은 Enum을 거친다.
-- 대시보드는 API에서 온 IP, 공격명, 설명을 HTML escape한다.
+- 대시보드는 API에서 온 IP, 이벤트명, 설명을 HTML escape한다.
 - 브라우저에는 원시 payload나 자격 증명을 저장하지 않는다.
 - WebSocket 큐는 100개로 제한되며 느린 소비자가 탐지를 막지 않는다.
 
