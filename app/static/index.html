@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AegisFlow 하이브리드 네트워크 침입 탐지 운영 대시보드">
+  <title>AegisFlow — Network Defense</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="AegisFlow 홈">
+      <span class="brand-mark"><i></i><i></i><i></i></span>
+      <span><b>AEGIS</b>FLOW<small>NETWORK DEFENSE</small></span>
+    </a>
+    <nav aria-label="주 탐색">
+      <a class="nav-item active" href="#overview" data-section="overview"><span>01</span> Overview</a>
+      <a class="nav-item" href="#threats" data-section="threats"><span>02</span> Threat feed</a>
+      <a class="nav-item" href="#architecture" data-section="architecture"><span>03</span> Detection</a>
+      <a class="nav-item" href="/docs" target="_blank"><span>04</span> API reference</a>
+    </nav>
+    <div class="engine-card">
+      <div class="engine-head"><span class="pulse-dot"></span> Engine online</div>
+      <p>Hybrid inference</p>
+      <div class="engine-row"><span>Rules</span><b>5 active</b></div>
+      <div class="engine-row"><span>ML baseline</span><b>IForest v1</b></div>
+    </div>
+    <div class="sidebar-foot">SOC CONSOLE <span>v1.0.0</span></div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">LIVE OPERATIONS / <span>BUSAN-EDGE-01</span></div>
+        <h1>Threat overview</h1>
+      </div>
+      <div class="top-actions">
+        <div class="clock"><span>UTC+09</span><strong id="clock">--:--:--</strong></div>
+        <button class="icon-button" id="refreshButton" aria-label="데이터 새로고침">↻</button>
+        <div class="status-pill"><i></i> Monitoring</div>
+      </div>
+    </header>
+
+    <section id="overview" class="metric-grid" aria-label="핵심 지표">
+      <article class="metric-card accent-cyan">
+        <div class="metric-top"><span>Analyzed flows</span><span class="metric-icon">⌁</span></div>
+        <strong id="totalFlows">—</strong>
+        <p><i class="trend-up">↑</i> 실시간 분석 누적</p>
+        <div class="spark-bars" id="flowSpark"></div>
+      </article>
+      <article class="metric-card accent-red">
+        <div class="metric-top"><span>Active alerts</span><span class="metric-icon">△</span></div>
+        <strong id="totalAlerts">—</strong>
+        <p><i class="trend-red">●</i> 최근 1시간 <b id="lastHour">—</b>건</p>
+        <div class="spark-bars red" id="alertSpark"></div>
+      </article>
+      <article class="metric-card accent-orange">
+        <div class="metric-top"><span>Critical risk</span><span class="metric-icon">!</span></div>
+        <strong id="criticalAlerts">—</strong>
+        <p><i class="trend-orange">◆</i> 즉시 검토 필요</p>
+        <div class="risk-gauge"><span id="riskGauge"></span></div>
+      </article>
+      <article class="metric-card accent-lime">
+        <div class="metric-top"><span>Mean risk score</span><span class="metric-icon">◎</span></div>
+        <strong><span id="averageRisk">—</span><small>/100</small></strong>
+        <p><i class="trend-lime">✓</i> Explainable scoring</p>
+        <div class="tick-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </article>
+    </section>
+
+    <section class="analysis-grid">
+      <article class="panel traffic-panel">
+        <div class="panel-head">
+          <div><span class="panel-index">01</span><h2>Detection telemetry</h2></div>
+          <div class="legend"><span><i class="cyan"></i> Alerts</span><span><i class="grid-color"></i> Baseline</span></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-scale"><span>12</span><span>8</span><span>4</span><span>0</span></div>
+          <svg id="timelineChart" viewBox="0 0 800 250" preserveAspectRatio="none" aria-label="최근 한 시간 탐지 추이">
+            <defs>
+              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#29e7d7" stop-opacity=".3"/><stop offset="1" stop-color="#29e7d7" stop-opacity="0"/></linearGradient>
+            </defs>
+            <g class="grid-lines"><line x1="0" y1="20" x2="800" y2="20"/><line x1="0" y1="85" x2="800" y2="85"/><line x1="0" y1="150" x2="800" y2="150"/><line x1="0" y1="215" x2="800" y2="215"/></g>
+            <path id="timelineArea" class="timeline-area" d="M0 215 L800 215 Z"/>
+            <path id="timelineLine" class="timeline-line" d="M0 215 L800 215"/>
+          </svg>
+          <div class="chart-labels"><span>-60m</span><span>-45m</span><span>-30m</span><span>-15m</span><span>now</span></div>
+        </div>
+      </article>
+
+      <article class="panel distribution-panel">
+        <div class="panel-head"><div><span class="panel-index">02</span><h2>Threat distribution</h2></div></div>
+        <div class="donut-layout">
+          <div class="donut" id="threatDonut"><div><strong id="donutTotal">0</strong><span>ALERTS</span></div></div>
+          <div class="threat-legend" id="threatLegend"><p class="empty">Waiting for telemetry…</p></div>
+        </div>
+      </article>
+    </section>
+
+    <section id="threats" class="panel threat-panel">
+      <div class="panel-head threat-head">
+        <div><span class="panel-index">03</span><h2>Live threat feed</h2><span class="live-tag"><i></i> LIVE</span></div>
+        <div class="filters" role="group" aria-label="심각도 필터">
+          <button class="filter active" data-severity="">All</button>
+          <button class="filter" data-severity="critical">Critical</button>
+          <button class="filter" data-severity="high">High</button>
+          <button class="filter" data-severity="medium">Medium</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Severity</th><th>Threat</th><th>Source → Destination</th><th>Protocol</th><th>Risk</th><th>Status</th><th></th></tr></thead>
+          <tbody id="eventTable"><tr class="loading-row"><td colspan="8">Establishing secure telemetry channel…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="architecture" class="architecture-strip">
+      <div><span class="eyebrow">DETECTION PIPELINE</span><h2>From flow to explainable decision.</h2></div>
+      <div class="pipeline">
+        <span><b>01</b> Flow validation</span><i>→</i><span><b>02</b> Feature extraction</span><i>→</i><span><b>03</b> Rules + IForest</span><i>→</i><span><b>04</b> SOC triage</span>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="eventDialog">
+    <button class="dialog-close" aria-label="닫기">×</button>
+    <div id="dialogContent"></div>
+  </dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
+
